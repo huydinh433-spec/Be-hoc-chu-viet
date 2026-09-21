@@ -1,230 +1,298 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="vi">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Bé học chữ - a thường</title>
 <style>
-*{box-sizing:border-box;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
-html,body{margin:0;padding:0;background:#fff;touch-action:none}
-body{font-family:Arial,sans-serif;color:#302b28}
-.app{width:min(780px,100vw);margin:auto;padding:12px 14px 26px}
-h1{text-align:center;margin:4px 0;color:#d3654e;font-size:32px}
-.subtitle{text-align:center;color:#8a7b72;font-size:21px;margin-bottom:14px}
-.card{background:#fff;border-radius:25px;padding:14px;box-shadow:0 3px 18px rgba(0,0,0,.09)}
-#model{display:block;width:100%;height:auto;margin:auto}
-.example{text-align:center;font-size:25px;margin:0 0 12px}.example b{color:#d3654e}
-#trace{display:block;width:100%;height:auto;border-radius:16px;touch-action:none}
-.instruction{background:#eef5ff;border-radius:18px;padding:16px 18px;margin-top:12px;font-size:17px;line-height:1.45}
-.instruction b{font-size:18px}
-.buttons{display:flex;gap:10px;margin-top:12px}
-button{flex:1;border:0;border-radius:13px;padding:13px 8px;font-size:17px;font-weight:700;color:#fff}
-.green{background:#32a852}.blue{background:#2878df}.gray{background:#66748a}
-.status{text-align:center;min-height:48px;font-size:18px;font-weight:700;padding:10px 3px}
-.tip{background:#eaf8ee;color:#28783b;border-radius:15px;padding:11px;text-align:center;margin-top:11px;font-size:16px}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:#fff;color:#302b28;font-family:Arial,sans-serif}
+body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:manipulation}
+.app{max-width:760px;margin:auto;padding:12px}
+h1{text-align:center;color:#d3654e;font-size:32px;margin:8px 0}
+.sub{text-align:center;color:#8a7b72;font-size:21px;margin-bottom:14px}
+.card{border-radius:24px;padding:14px;background:#fff;box-shadow:0 2px 15px #ddd}
+canvas{display:block;width:100%;height:auto;background:#fff}
+.example{text-align:center;font-size:25px;margin:8px 0 14px}
+.example b{color:#d3654e}
+.status{text-align:center;font-size:18px;font-weight:700;min-height:48px;padding:10px}
+.info{font-size:17px;line-height:1.5;background:#eef5ff;border-radius:15px;padding:14px}
+.buttons{display:flex;gap:9px;margin-top:12px}
+button{flex:1;border:0;border-radius:12px;padding:13px 6px;font-size:16px;font-weight:bold;color:#fff}
+.green{background:#39a653}.blue{background:#3168d8}.gray{background:#68758a}
 </style>
 </head>
 <body>
 <div class="app">
 <h1>⭐ Bé học chữ</h1>
-<div class="subtitle">Học · Nghe · Tập viết</div>
+<div class="sub">Học · Nghe · Tập viết</div>
 <div class="card">
-<canvas id="model" width="720" height="300"></canvas>
+
+<canvas id="model" width="720" height="280"></canvas>
 <div class="example">Ví dụ: <b>áo</b></div>
-<canvas id="trace" width="720" height="610"></canvas>
-<div id="status" class="status">🟢 Chạm vào chấm số 1 để bắt đầu Nét 1</div>
-<div class="instruction">
-  <div><b>Nét 1: Cong kín</b><br>Đặt bút giữa đường kẻ 2 và 3, viết nét cong kín (từ phải sang trái).</div>
-  <div style="margin-top:9px"><b>Nét 2: Móc ngược phải</b><br>Từ điểm dừng của nét 1, lia bút lên đường kẻ 3, viết nét móc ngược phải sát nét cong kín, đến đường kẻ 2 thì dừng lại.</div>
+<canvas id="board" width="720" height="560"></canvas>
+
+<div id="status" class="status">🟢 Chạm vào chấm xanh số 1 để bắt đầu Nét 1</div>
+
+<div class="info">
+<b>Nét 1: Cong kín.</b> Đặt bút giữa đường kẻ 2 và 3, viết nét cong kín từ phải sang trái.<br><br>
+<b>Nét 2: Móc ngược phải.</b> Từ điểm dừng của nét 1, lia bút lên đường kẻ 3, viết sát nét cong kín, xuống đường kẻ 1 rồi móc ngược phải, dừng ở đường kẻ 2.
 </div>
+
 <div class="buttons">
-<button class="green" id="speak">🔊 Nghe chữ a</button>
-<button class="blue" id="reset">✏️ Viết lại</button>
-<button class="gray" id="guide">👁️ Ẩn nét mẫu</button>
+<button class="green" id="sound">🔊 Nghe chữ a</button>
+<button class="blue" id="again">✏️ Viết lại</button>
+<button class="gray" id="show">👁️ Nét mẫu</button>
 </div>
-<div class="tip">⭐ Hãy viết theo đúng thứ tự nét nhé!</div>
 </div>
 </div>
 
 <script>
-const trace=document.getElementById('trace'), ctx=trace.getContext('2d');
-const model=document.getElementById('model'), mctx=model.getContext('2d');
-const W=720,H=610;
+(function(){
+'use strict';
 
-// School grid: lines 1-5, with the writing body between lines 1 and 3.
-const Y={1:500,2:420,3:340,4:260,5:180};
+var board=document.getElementById('board');
+var ctx=board.getContext('2d');
+var model=document.getElementById('model');
+var mc=model.getContext('2d');
+var status=document.getElementById('status');
+var W=720,H=560;
 
-// IMPORTANT: the lowercase "a" is intentionally narrow.
-// Stroke 1 occupies about 1.5 grid squares horizontally.
-// It starts between lines 2 and 3 on the right, travels right->left,
-// forms a closed oval, and ends at the upper-right.
-function ovalStroke(t){
-  const cx=330, cy=420, rx=72, ry=80;
-  // start around upper-right; clockwise parameter decreasing angle = right -> left around loop
-  const a=-0.08 - 2*Math.PI*t;
-  return {x:cx+rx*Math.cos(a), y:cy+ry*Math.sin(a)};
+/*
+  MẪU CHỮ a TIỂU HỌC
+  Lưới: dòng 1 = 460, dòng 2 = 380, dòng 3 = 300.
+  Nét 1: rộng khoảng 1,5 ô ngang (142 px), cao 2 ô.
+  Điểm bắt đầu: giữa dòng 2 và 3, phía trên-bên phải.
+*/
+var cx=330, cy=380, rx=71, ry=80;
+var startA=-0.60;
+
+function s1(t){
+  var a=startA-2*Math.PI*t;
+  return {x:cx+rx*Math.cos(a),y:cy+ry*Math.sin(a)};
 }
 
-// Stroke 2 starts at the end of stroke 1, rises to line 3,
-// descends beside the closed oval, reaches line 1,
-// then hooks to the right and finishes at line 2.
-function hookStroke(t){
-  const pts=[
-    {x:402,y:340}, // line 3
-    {x:402,y:370},
-    {x:402,y:415},
-    {x:402,y:465},
-    {x:402,y:500}, // line 1
-    {x:414,y:510},
-    {x:438,y:510},
-    {x:462,y:495},
-    {x:477,y:470},
-    {x:486,y:440},
-    {x:490,y:420}  // line 2
+/* Nét 2 bắt đầu ở điểm dừng của nét 1, lia lên dòng 3,
+   xuống sát bên phải, xuống dòng 1, móc phải, dừng dòng 2. */
+function s2(t){
+  var p=[
+    {x:cx+rx*Math.cos(startA),y:cy+ry*Math.sin(startA)},
+    {x:401,y:300},
+    {x:401,y:345},
+    {x:401,y:405},
+    {x:401,y:455},
+    {x:411,y:460},
+    {x:435,y:460},
+    {x:457,y:450},
+    {x:470,y:425},
+    {x:477,y:405},
+    {x:480,y:380}
   ];
-  const z=Math.min((pts.length-1)-0.001,t*(pts.length-1));
-  const i=Math.floor(z),f=z-i;
-  return {x:pts[i].x+(pts[i+1].x-pts[i].x)*f,
-          y:pts[i].y+(pts[i+1].y-pts[i].y)*f};
+  var z=t*(p.length-1);
+  var i=Math.min(Math.floor(z),p.length-2);
+  var f=z-i;
+  return {x:p[i].x+(p[i+1].x-p[i].x)*f,
+          y:p[i].y+(p[i+1].y-p[i].y)*f};
 }
-function makePath(fn,n){const a=[];for(let i=0;i<=n;i++)a.push(fn(i/n));return a}
-const P=[makePath(ovalStroke,220),makePath(hookStroke,140)];
 
-function strokePath(c,q,color,width){
-  c.beginPath();c.moveTo(q[0].x,q[0].y);
-  for(const p of q.slice(1))c.lineTo(p.x,p.y);
-  c.strokeStyle=color;c.lineWidth=width;c.lineCap='round';c.lineJoin='round';c.stroke();
+function path(fn,n){
+  var a=[];
+  for(var i=0;i<=n;i++)a.push(fn(i/n));
+  return a;
+}
+var P1=path(s1,240);
+var P2=path(s2,160);
+
+function line(c,p,color,width){
+  c.beginPath();
+  c.moveTo(p[0].x,p[0].y);
+  for(var i=1;i<p.length;i++)c.lineTo(p[i].x,p[i].y);
+  c.strokeStyle=color;
+  c.lineWidth=width;
+  c.lineCap='round';
+  c.lineJoin='round';
+  c.stroke();
 }
 
 function drawModel(){
-  mctx.clearRect(0,0,720,300);
-  // guide lines 1,2,3
-  mctx.strokeStyle='#8bbef0';mctx.lineWidth=3;
-  [240,170,100].forEach(y=>{mctx.beginPath();mctx.moveTo(125,y);mctx.lineTo(595,y);mctx.stroke()});
-  mctx.fillStyle='#315d92';mctx.font='22px Arial';mctx.textAlign='center';
-  [['3',100],['2',170],['1',240]].forEach(([n,y])=>mctx.fillText(n,108,y+7));
+  mc.clearRect(0,0,720,280);
 
-  // draw the actual two-stroke model
-  mctx.strokeStyle='#171717';mctx.lineWidth=9;mctx.lineCap='round';mctx.lineJoin='round';
-  const scale=.72, ox=360-360*scale, oy=-100*scale+30;
-  mctx.save();mctx.translate(ox,oy);mctx.scale(scale,scale);
-  strokePath(mctx,P[0],'#111',12);
-  strokePath(mctx,P[1],'#111',12);
-  mctx.restore();
-
-  // arrows and stroke numbers
-  mctx.fillStyle='#e3482f';mctx.font='bold 25px Arial';
-  mctx.beginPath();mctx.arc(310,155,18,0,Math.PI*2);mctx.fill();
-  mctx.fillStyle='#fff';mctx.fillText('1',310,164);
-  mctx.fillStyle='#e3482f';mctx.beginPath();mctx.arc(425,100,18,0,Math.PI*2);mctx.fill();
-  mctx.fillStyle='#fff';mctx.fillText('2',425,109);
-}
-
-let active=0, drawing=false, started=false, progress=0, guide=true, ink=[];
-
-function grid(){
-  ctx.clearRect(0,0,W,H);ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
-  ctx.strokeStyle='#82b9ed';ctx.lineWidth=3;
-  [500,420,340,260,180].forEach(y=>{
-    ctx.beginPath();ctx.moveTo(50,y);ctx.lineTo(675,y);ctx.stroke();
+  mc.strokeStyle='#8bbef0';
+  mc.lineWidth=3;
+  [90,155,220].forEach(function(y){
+    mc.beginPath();mc.moveTo(125,y);mc.lineTo(595,y);mc.stroke();
   });
-  for(let x=50;x<=675;x+=95){
-    ctx.beginPath();ctx.moveTo(x,180);ctx.lineTo(x,500);ctx.stroke();
+
+  mc.fillStyle='#3d6798';
+  mc.font='22px Arial';
+  mc.textAlign='center';
+  mc.fillText('3',108,97);
+  mc.fillText('2',108,162);
+  mc.fillText('1',108,227);
+
+  function mp(p){
+    return {x:385+(p.x-330)*.86,y:155+(p.y-380)*.82};
   }
-  ctx.fillStyle='#3e5267';ctx.font='22px Arial';ctx.textAlign='center';
-  [500,420,340,260,180].forEach((y,i)=>ctx.fillText(String(i+1),30,y+7));
+
+  line(mc,P1.map(mp),'#111',10);
+  line(mc,P2.map(mp),'#111',10);
+
+  // Mũi tên phải -> trái cho nét 1
+  mc.strokeStyle='#e35d48';mc.lineWidth=4;
+  mc.beginPath();
+  mc.moveTo(415,135);
+  mc.quadraticCurveTo(365,105,325,132);
+  mc.stroke();
+  mc.beginPath();
+  mc.moveTo(325,132);
+  mc.lineTo(338,126);
+  mc.lineTo(335,140);
+  mc.closePath();
+  mc.fillStyle='#e35d48';mc.fill();
+
+  // số nét
+  function bubble(x,y,n){
+    mc.beginPath();mc.arc(x,y,18,0,Math.PI*2);
+    mc.fillStyle='#e35d48';mc.fill();
+    mc.fillStyle='#fff';mc.font='bold 23px Arial';mc.textAlign='center';
+    mc.fillText(n,x,y+8);
+  }
+  bubble(302,156,'1');
+  bubble(445,91,'2');
 }
-function draw(){
-  grid();
+
+var active=0;
+var drawing=false;
+var progress=0;
+var ink=[];
+var guide=true;
+
+function drawBoard(){
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
+
+  ctx.strokeStyle='#86b9e8';ctx.lineWidth=3;
+  [460,380,300,220,140].forEach(function(y){
+    ctx.beginPath();ctx.moveTo(45,y);ctx.lineTo(675,y);ctx.stroke();
+  });
+  for(var x=45;x<=675;x+=95){
+    ctx.beginPath();ctx.moveTo(x,140);ctx.lineTo(x,460);ctx.stroke();
+  }
+
+  ctx.fillStyle='#3e638e';ctx.font='21px Arial';ctx.textAlign='center';
+  [460,380,300,220,140].forEach(function(y,i){
+    ctx.fillText(String(i+1),25,y+7);
+  });
+
   if(guide){
-    strokePath(ctx,P[0],'rgba(80,80,80,.18)',15);
-    strokePath(ctx,P[1],'rgba(80,80,80,.18)',15);
-    strokePath(ctx,P[active],'#222',6);
+    line(ctx,P1,'rgba(80,80,80,.16)',16);
+    line(ctx,P2,'rgba(80,80,80,.16)',16);
+    line(ctx,active===0?P1:P2,'#222',6);
   }
-  const q=P[active];
-  const marks=active===0?[0,.45,1]:[0,.35,.7,1];
-  ctx.font='bold 25px Arial';ctx.textAlign='center';
-  marks.forEach((t,i)=>{
-    const p=q[Math.floor(t*(q.length-1))];
-    ctx.beginPath();ctx.arc(p.x,p.y,19,0,Math.PI*2);
-    ctx.fillStyle=i===0?'#45a968':'#e06752';ctx.fill();
-    ctx.fillStyle='#fff';ctx.fillText(String(i+1),p.x,p.y+8);
-  });
-  if(ink.length)strokePath(ctx,ink,'#e95050',10);
+
+  if(active===0){
+    bubble(ctx,P1[0], '1', '#45a968');
+    var q=P1[Math.floor(P1.length*.48)];
+    bubble(ctx,q,'2','#e06752');
+  }else{
+    bubble(ctx,P2[0],'1','#45a968');
+    bubble(ctx,P2[P2.length-1],'2','#e06752');
+  }
+
+  if(ink.length)line(ctx,ink,'#e95151',10);
+}
+
+function bubble(c,p,n,color){
+  c.beginPath();c.arc(p.x,p.y,20,0,Math.PI*2);
+  c.fillStyle=color;c.fill();
+  c.fillStyle='#fff';c.font='bold 25px Arial';c.textAlign='center';
+  c.fillText(n,p.x,p.y+9);
 }
 
 function pos(e){
-  const r=trace.getBoundingClientRect();
-  return {x:(e.clientX-r.left)*W/r.width,y:(e.clientY-r.top)*H/r.height};
+  var r=board.getBoundingClientRect();
+  return {
+    x:(e.clientX-r.left)*W/r.width,
+    y:(e.clientY-r.top)*H/r.height
+  };
 }
-function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
+function distance(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
 function nearest(p,q){
-  let best=1e9,idx=0;
-  for(let i=0;i<q.length;i++){const d=dist(p,q[i]);if(d<best){best=d;idx=i}}
-  return {d:best,t:idx/(q.length-1)};
+  var best=Infinity,index=0;
+  for(var i=0;i<q.length;i++){
+    var d=distance(p,q[i]);
+    if(d<best){best=d;index=i}
+  }
+  return {d:best,t:index/(q.length-1)};
 }
-function down(e){
+
+board.addEventListener('pointerdown',function(e){
   e.preventDefault();
-  const p=pos(e),s=P[active][0];
-  if(!started){
-    if(dist(p,s)>70){
-      document.getElementById('status').textContent='👉 Hãy chạm gần chấm xanh số 1 để đặt bút.';
-      return;
-    }
-    started=true;progress=0;ink=[p];
-    document.getElementById('status').textContent=active===0?
-      'Nét 1: cong kín, từ phải sang trái.':
-      'Nét 2: lia lên đường kẻ 3, đi xuống sát nét cong và móc ngược phải.';
-  }else ink=[p];
-  drawing=true;trace.setPointerCapture?.(e.pointerId);draw();
-}
-function move(e){
+  var p=pos(e);
+  if(distance(p,(active===0?P1:P2)[0])>75){
+    status.textContent='👉 Hãy chạm đúng chấm xanh số 1.';
+    return;
+  }
+  drawing=true;progress=0;ink=[p];
+  if(board.setPointerCapture)board.setPointerCapture(e.pointerId);
+  status.textContent=active===0?
+    '✍️ Nét 1: cong kín, từ phải sang trái.':
+    '✍️ Nét 2: lia lên dòng 3, xuống sát nét cong rồi móc phải.';
+  drawBoard();
+},{passive:false});
+
+board.addEventListener('pointermove',function(e){
   if(!drawing)return;
   e.preventDefault();
-  const p=pos(e),n=nearest(p,P[active]);
-  if(n.d<=75 && n.t>=progress-.10){
-    progress=Math.max(progress,n.t);
-    ink.push(p);
-  }else{
-    ink.push(p);
+  var p=pos(e),q=active===0?P1:P2,n=nearest(p,q);
+
+  if(n.d<=82 && n.t>=progress-0.15)progress=Math.max(progress,n.t);
+  ink.push(p);
+
+  if(progress>=0.97){
+    drawing=false;ink=[];
+    if(active===0){
+      active=1;
+      status.textContent='⭐ Nét 1 đúng! Bây giờ viết Nét 2.';
+    }else{
+      active=0;
+      status.textContent='🎉 Giỏi lắm! Bé đã viết xong chữ a.';
+    }
   }
-  if(progress>=.97)finishStroke();
-  draw();
-}
-function up(e){drawing=false;e.preventDefault()}
-function finishStroke(){
-  drawing=false;started=false;progress=0;ink=[];
-  if(active===0){
-    active=1;
-    document.getElementById('status').textContent='⭐ Nét 1 đúng! Bây giờ viết Nét 2.';
-  }else{
-    document.getElementById('status').textContent='🎉 Giỏi lắm! Bé đã hoàn thành chữ a.';
-    active=0;
-  }
-  draw();
-}
-function reset(){
-  active=0;drawing=false;started=false;progress=0;ink=[];
-  document.getElementById('status').textContent='🟢 Chạm vào chấm số 1 để bắt đầu Nét 1';
-  draw();
-}
-trace.addEventListener('pointerdown',down,{passive:false});
-trace.addEventListener('pointermove',move,{passive:false});
-trace.addEventListener('pointerup',up,{passive:false});
-trace.addEventListener('pointercancel',up,{passive:false});
-['contextmenu','selectstart'].forEach(ev=>document.addEventListener(ev,e=>e.preventDefault()));
-document.getElementById('reset').onclick=reset;
-document.getElementById('guide').onclick=()=>{
+  drawBoard();
+},{passive:false});
+
+board.addEventListener('pointerup',function(e){
+  drawing=false;e.preventDefault();
+},{passive:false});
+board.addEventListener('pointercancel',function(){drawing=false},{passive:false});
+
+document.getElementById('again').onclick=function(){
+  active=0;drawing=false;progress=0;ink=[];
+  status.textContent='🟢 Chạm vào chấm xanh số 1 để bắt đầu Nét 1';
+  drawBoard();
+};
+
+document.getElementById('show').onclick=function(){
   guide=!guide;
-  document.getElementById('guide').textContent=guide?'👁️ Ẩn nét mẫu':'👁️ Hiện nét mẫu';
-  draw();
+  document.getElementById('show').textContent=guide?'👁️ Ẩn nét mẫu':'👁️ Hiện nét mẫu';
+  drawBoard();
 };
-document.getElementById('speak').onclick=()=>{
-  speechSynthesis.cancel();
-  const u=new SpeechSynthesisUtterance('a, áo');
-  u.lang='vi-VN';u.rate=.72;speechSynthesis.speak(u);
+
+document.getElementById('sound').onclick=function(){
+  if('speechSynthesis' in window){
+    speechSynthesis.cancel();
+    var u=new SpeechSynthesisUtterance('a, áo');
+    u.lang='vi-VN';u.rate=.7;speechSynthesis.speak(u);
+  }
 };
-drawModel();draw();
+
+document.addEventListener('contextmenu',function(e){e.preventDefault()});
+document.addEventListener('selectstart',function(e){e.preventDefault()});
+
+drawModel();
+drawBoard();
+})();
 </script>
 </body>
 </html>
