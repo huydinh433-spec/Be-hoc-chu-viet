@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Bé học chữ A</title>
+<style>
+*{box-sizing:border-box;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:#fff6e5;font-family:-apple-system,BlinkMacSystemFont,"Arial Rounded MT Bold",Arial,sans-serif;color:#4b392f}
+main{max-width:760px;margin:auto;padding:18px 14px 35px}
+h1{text-align:center;color:#df6249;margin:4px 0;font-size:34px}
+.sub{text-align:center;color:#8a7567;font-size:20px;margin-bottom:14px}
+.card{background:#fff;border-radius:28px;padding:18px;box-shadow:0 5px 22px #00000012}
+.letter{text-align:center;font-size:120px;line-height:.9;color:#df6249;font-weight:900}
+.example{text-align:center;font-size:27px;margin:10px 0 18px}.example b{color:#df6249}
+.tabs{display:flex;gap:10px;margin-bottom:12px}
+button{border:0;border-radius:18px;padding:16px 10px;font-size:19px;font-weight:800;background:#ffe3aa;color:#4b392f}
+.tabs button{flex:1}.tabs .on{background:#5bad96;color:white}
+.board{position:relative;width:100%;aspect-ratio:1/0.78;border:5px solid #efddc3;border-radius:25px;overflow:hidden;background:#fffefa}
+.grid{position:absolute;inset:0;background-image:linear-gradient(#eee7da 2px,transparent 2px),linear-gradient(90deg,#eee7da 2px,transparent 2px);background-size:12.5% 14.3%}
+svg{position:absolute;inset:0;width:100%;height:100%;z-index:1}
+.guide{fill:none;stroke:#dc7a61;stroke-width:20;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:2 16}
+.bar{fill:none;stroke:#dc7a61;stroke-width:17;stroke-linecap:round}
+.dot{stroke:white;stroke-width:5}.green{fill:#22a86a}.yellow{fill:#f2a629}.red{fill:#e46850}
+.num{fill:white;font-size:22px;font-weight:900;text-anchor:middle;dominant-baseline:central}
+.arrow{fill:#e46850;font-size:34px;font-weight:900}
+canvas{position:absolute;inset:0;width:100%;height:100%;z-index:3;touch-action:none;-webkit-user-select:none;user-select:none}
+.msg{text-align:center;font-size:21px;font-weight:800;min-height:32px;margin:13px 0}
+.controls{display:flex;gap:10px}.controls button{flex:1}
+.note{text-align:center;color:#8a7567;font-size:17px;line-height:1.4;margin-top:14px}
+</style>
+</head>
+<body>
+<main>
+<h1>⭐ Bé học chữ</h1>
+<div class="sub">Học · Nghe · Tập viết</div>
+<section class="card">
+<div class="letter" id="letter">A</div>
+<div class="example">Ví dụ: <b>áo</b></div>
+<div class="tabs">
+<button id="upper" class="on" onclick="setMode('upper')">Chữ HOA A</button>
+<button id="lower" onclick="setMode('lower')">Chữ thường a</button>
+</div>
+
+<div class="board" id="board">
+<div class="grid"></div>
+<svg viewBox="0 0 600 470" preserveAspectRatio="none">
+<!-- Nét 1: trái -> đỉnh -> phải -->
+<path class="guide" d="M105 385 L300 65 L495 385"/>
+<!-- Nét 2: trái -> phải -->
+<path class="bar" d="M205 280 L395 280"/>
+
+<circle class="dot green" cx="105" cy="385" r="27"/><text class="num" x="105" y="385">1</text>
+<circle class="dot yellow" cx="300" cy="65" r="27"/><text class="num" x="300" y="65">2</text>
+<circle class="dot red" cx="495" cy="385" r="27"/><text class="num" x="495" y="385">3</text>
+<text class="arrow" x="270" y="125">↓</text>
+
+<circle class="dot green" cx="205" cy="280" r="27"/><text class="num" x="205" y="280">1</text>
+<circle class="dot red" cx="395" cy="280" r="27"/><text class="num" x="395" y="280">2</text>
+</svg>
+<canvas id="canvas"></canvas>
+</div>
+
+<div class="msg" id="msg">🟢 Chạm chấm số 1 rồi kéo theo các chấm</div>
+<div class="controls">
+<button onclick="speak()">🔊 Nghe</button>
+<button onclick="show()">👀 Xem nét</button>
+<button onclick="resetGame()">↻ Viết lại</button>
+</div>
+<div class="note">Bé không cần đi sát nét. Chỉ cần bắt đầu đúng chấm và đi đúng hướng là được 😊</div>
+</section>
+</main>
+
+<script>
+const board=document.getElementById('board'),canvas=document.getElementById('canvas'),ctx=canvas.getContext('2d');
+let dpr=window.devicePixelRatio||1,mode='upper',stroke=0,drawing=false,pts=[];
+function size(){
+ let r=board.getBoundingClientRect();
+ canvas.width=r.width*dpr;canvas.height=r.height*dpr;
+ ctx.setTransform(dpr,0,0,dpr,0,0);
+ ctx.lineWidth=16;ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle='#4b9fd0';
+}
+addEventListener('resize',size);size();
+function pos(e){
+ let r=canvas.getBoundingClientRect(),x=e.clientX,y=e.clientY;
+ return{x:x-r.left,y:y-r.top};
+}
+function target(which){
+ let r=board.getBoundingClientRect(),sx=r.width/600,sy=r.height/470;
+ if(mode==='upper'){
+  let a=stroke===0?[105,385]:[205,280], b=stroke===0?[495,385]:[395,280];
+  return {a:{x:a[0]*sx,y:a[1]*sy},b:{x:b[0]*sx,y:b[1]*sy}};
+ }
+ return {a:{x:150*sx,y:365*sy},b:{x:450*sx,y:365*sy}};
+}
+function near(p,q,n){return Math.hypot(p.x-q.x,p.y-q.y)<=n}
+function down(e){
+ e.preventDefault();let p=pos(e),t=target();
+ if(!near(p,t.a,75)){msg('👉 Chạm vào chấm số 1 màu xanh nhé!');return}
+ drawing=true;pts=[p];ctx.beginPath();ctx.moveTo(p.x,p.y);
+}
+function move(e){
+ if(!drawing)return;e.preventDefault();let p=pos(e);pts.push(p);ctx.lineTo(p.x,p.y);ctx.stroke();
+}
+function up(e){
+ if(!drawing)return;drawing=false;
+ let t=target(),last=pts[pts.length-1];
+ if(near(last,t.b,85)){
+  stroke++;
+  if((mode==='upper'&&stroke===2)||(mode==='lower'&&stroke===1)){
+   msg('🎉 Tuyệt vời! Bé đã viết đúng chữ '+(mode==='upper'?'A':'a')+'!');
+  }else msg('⭐ Đúng rồi! Sang nét tiếp theo nhé.');
+ }else{
+  clear();msg('😊 Gần đúng rồi! Không cần sát nét, thử lại nét này nhé.');
+ }
+}
+document.addEventListener('contextmenu',e=>e.preventDefault());
+document.addEventListener('selectstart',e=>e.preventDefault());
+canvas.addEventListener('pointerdown',down);
+canvas.addEventListener('pointermove',move);
+canvas.addEventListener('pointerup',up);
+canvas.addEventListener('pointercancel',up);
+function clear(){ctx.clearRect(0,0,canvas.width/dpr,canvas.height/dpr);pts=[]}
+function resetGame(){stroke=0;clear();msg('🟢 Chạm chấm số 1 rồi kéo theo các chấm')}
+function msg(s){document.getElementById('msg').textContent=s}
+function speak(){speechSynthesis.cancel();let u=new SpeechSynthesisUtterance(mode==='upper'?'Chữ A':'Chữ a');u.lang='vi-VN';u.rate=.8;speechSynthesis.speak(u)}
+function show(){msg('👀 Nét 1: 1 → 2 → 3. Nét 2: 1 → 2.')}
+function setMode(m){
+ mode=m;stroke=0;clear();
+ document.getElementById('letter').textContent=m==='upper'?'A':'a';
+ document.getElementById('upper').classList.toggle('on',m==='upper');
+ document.getElementById('lower').classList.toggle('on',m==='lower');
+ msg('🟢 Chạm chấm số 1 rồi kéo theo các chấm');
+}
+</script>
+</body>
+</html>
